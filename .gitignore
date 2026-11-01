@@ -1,6 +1,8 @@
 .env
 .env.*
 !.env.example
+!.env.production.example
+approved-feeds.json
 node_modules/
 dist/
 *.tsbuildinfo

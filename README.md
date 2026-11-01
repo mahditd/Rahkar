@@ -72,6 +72,17 @@ npm run build
 
 The frontend calls same-origin `/api/`; the Docker Nginx server proxies those requests to Go. For Vite development outside Docker, its proxy targets `http://localhost:8081`. No paid services or AI APIs are required.
 
+## Production preparation
+
+`compose.prod.yaml` separates the public stack from the local demo. It keeps PostgreSQL and the API internal and binds the web server to `127.0.0.1:8080` for a host reverse proxy to serve with HTTPS. It has no sample import jobs. Copy `.env.production.example` to a private file, replace every placeholder, and deploy with a separate Compose project name:
+
+```powershell
+docker compose -p rahkar-prod --env-file .env.production -f compose.prod.yaml config
+docker compose -p rahkar-prod --env-file .env.production -f compose.prod.yaml up --build -d
+```
+
+Only start the `feeds` profile after placing an approved private JSON config at `FEED_CONFIG_PATH`. `docs/data-onboarding.md` contains the feed contract and a permission request template. Configure a domain and HTTPS reverse proxy before exposing the web app; the Compose file binds only to loopback. Keep the private env file and feed config outside Git. For PostgreSQL upgrades, apply new migrations explicitly because Docker's init scripts only run for a new data volume.
+
 ## Data source status
 
 - [Divar Kenar search API](https://divar-ir.github.io/kenar-docs/post/search_post/) has a strict documented 100-call limit and no pagination. [Kenar asks for a support ticket before building on its finder API](https://divar-ir.github.io/kenar-docs/openapi-doc/finder/).
