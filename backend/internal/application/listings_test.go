@@ -14,6 +14,14 @@ func (r *captureRepo) Search(_ context.Context, f SearchFilter) (SearchResult, e
 	return SearchResult{Items: []domain.Listing{}, Count: 0}, nil
 }
 func (*captureRepo) SaveBatch(context.Context, []domain.Listing) error { return nil }
+func (*captureRepo) History(context.Context, int64) ([]domain.PriceObservation, error) {
+	return nil, nil
+}
+func (*captureRepo) SourceStatuses(context.Context) ([]domain.SourceStatus, error) { return nil, nil }
+func (*captureRepo) CreateAlert(context.Context, domain.SavedAlert) error          { return nil }
+func (*captureRepo) AlertMatches(context.Context, string) (domain.SavedAlert, []domain.Listing, error) {
+	return domain.SavedAlert{}, nil, nil
+}
 
 func TestSearchNormalizesPersianAndKeepsYearCalendar(t *testing.T) {
 	repo := &captureRepo{}

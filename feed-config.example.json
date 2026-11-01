@@ -1,0 +1,15 @@
+{
+  "interval_minutes": 30,
+  "sources": [
+    {
+      "name": "demo-dealer-a",
+      "permission_ref": "fictional-demo-only",
+      "url": "file:///data/dealer-a.csv"
+    },
+    {
+      "name": "demo-dealer-b",
+      "permission_ref": "fictional-demo-only",
+      "url": "file:///data/dealer-b.csv"
+    }
+  ]
+}

@@ -2,8 +2,11 @@ package application
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"strings"
+	"time"
 
 	"rahcar/backend/internal/domain"
 )
@@ -30,9 +33,17 @@ type SearchResult struct {
 type Repository interface {
 	Search(context.Context, SearchFilter) (SearchResult, error)
 	SaveBatch(context.Context, []domain.Listing) error
+	History(context.Context, int64) ([]domain.PriceObservation, error)
+	SourceStatuses(context.Context) ([]domain.SourceStatus, error)
+	CreateAlert(context.Context, domain.SavedAlert) error
+	AlertMatches(context.Context, string) (domain.SavedAlert, []domain.Listing, error)
 }
 
 type Listings struct{ repo Repository }
+
+var ErrAlertNotFound = errors.New("alert not found")
+var ErrInvalidAlertFilters = errors.New("invalid alert filters")
+var ErrInvalidAlertToken = errors.New("invalid alert token")
 
 func NewListings(repo Repository) *Listings { return &Listings{repo: repo} }
 
@@ -80,4 +91,42 @@ func (s *Listings) Import(ctx context.Context, rows []domain.Listing) error {
 		}
 	}
 	return s.repo.SaveBatch(ctx, rows)
+}
+
+func (s *Listings) History(ctx context.Context, listingID int64) ([]domain.PriceObservation, error) {
+	if listingID <= 0 {
+		return nil, errors.New("listing ID must be positive")
+	}
+	return s.repo.History(ctx, listingID)
+}
+
+func (s *Listings) SourceStatuses(ctx context.Context) ([]domain.SourceStatus, error) {
+	return s.repo.SourceStatuses(ctx)
+}
+
+func (s *Listings) CreateAlert(ctx context.Context, f SearchFilter) (domain.SavedAlert, error) {
+	if f.MaxPriceToman < 0 || len(f.Query) > 120 || len(f.City) > 100 || len(f.Make) > 100 {
+		return domain.SavedAlert{}, ErrInvalidAlertFilters
+	}
+	secret := make([]byte, 24)
+	if _, err := rand.Read(secret); err != nil {
+		return domain.SavedAlert{}, err
+	}
+	now := time.Now().UTC()
+	a := domain.SavedAlert{
+		Token: base64.RawURLEncoding.EncodeToString(secret), Query: domain.Normalize(f.Query),
+		City: domain.Normalize(f.City), Make: domain.Normalize(f.Make), MaxPriceToman: f.MaxPriceToman,
+		CreatedAt: now, ExpiresAt: now.Add(30 * 24 * time.Hour),
+	}
+	if err := s.repo.CreateAlert(ctx, a); err != nil {
+		return domain.SavedAlert{}, err
+	}
+	return a, nil
+}
+
+func (s *Listings) AlertMatches(ctx context.Context, token string) (domain.SavedAlert, []domain.Listing, error) {
+	if len(token) != 32 {
+		return domain.SavedAlert{}, nil, ErrInvalidAlertToken
+	}
+	return s.repo.AlertMatches(ctx, token)
 }

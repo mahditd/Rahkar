@@ -7,3 +7,4 @@ dist/
 backend/rahcar-api
 backend/rahcar-importer
 *.log
+backups/

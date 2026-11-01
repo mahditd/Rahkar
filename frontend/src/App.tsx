@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Listing, ListingResponse } from "./types";
+import type {
+  Listing,
+  ListingResponse,
+  PriceObservation,
+  SavedAlert,
+  SourceStatus,
+} from "./types";
 
 const pageSize = 20;
 const number = (value: number) => new Intl.NumberFormat("fa-IR").format(value);
@@ -46,6 +52,63 @@ export default function App() {
   const [error, setError] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [selected, setSelected] = useState<Listing[]>([]);
+  const [sources, setSources] = useState<SourceStatus[]>([]);
+  const [savedAlertToken, setSavedAlertToken] = useState(
+    () => localStorage.getItem("rahcar-alert-token") || "",
+  );
+  const [alertCount, setAlertCount] = useState<number | null>(null);
+  const [alertMessage, setAlertMessage] = useState("");
+
+  useEffect(() => {
+    fetch("/api/v1/sources")
+      .then((response) => response.json())
+      .then((data: { items: SourceStatus[] }) => setSources(data.items ?? []))
+      .catch(() => {});
+  }, []);
+
+  const saveAlert = async () => {
+    setAlertMessage("");
+    try {
+      const response = await fetch("/api/v1/alerts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query,
+          city,
+          make,
+          max_price_toman: numeric(maxPrice) * 1_000_000,
+        }),
+      });
+      if (!response.ok) throw new Error("ذخیره هشدار موفق نبود.");
+      const alert: SavedAlert = await response.json();
+      localStorage.setItem("rahcar-alert-token", alert.token);
+      setSavedAlertToken(alert.token);
+      setAlertCount(null);
+      setAlertMessage(
+        "جستجو ذخیره شد. آگهی‌های تازه را از همین صفحه بررسی کن.",
+      );
+    } catch (error) {
+      setAlertMessage(
+        error instanceof Error ? error.message : "خطا در ذخیره هشدار",
+      );
+    }
+  };
+
+  const checkAlert = async () => {
+    try {
+      const response = await fetch("/api/v1/alerts", {
+        headers: { "X-Alert-Token": savedAlertToken },
+      });
+      if (!response.ok) throw new Error("بررسی هشدار موفق نبود.");
+      const data: { count: number } = await response.json();
+      setAlertCount(data.count);
+      setAlertMessage("تعداد آگهی‌های تازه مطابق جستجوی ذخیره‌شده:");
+    } catch (error) {
+      setAlertMessage(
+        error instanceof Error ? error.message : "خطا در بررسی هشدار",
+      );
+    }
+  };
 
   useEffect(() => {
     setPage(1);
@@ -192,6 +255,40 @@ export default function App() {
               فیدهای نمونه این پروژه ساختگی هستند. قیمت‌ها و فروشنده‌های نمونه،
               اطلاعات واقعی بازار نیستند.
             </p>
+          </div>
+        )}
+        <div className="operations-row">
+          <div className="source-summary">
+            {sources.length === 0
+              ? "هنوز وضعیت منبعی ثبت نشده است."
+              : sources.map((source) => (
+                  <span
+                    key={source.source_name}
+                    className={
+                      source.status === "success" ? "source-good" : "source-bad"
+                    }
+                  >
+                    {source.source_name}:{" "}
+                    {source.status === "success"
+                      ? "به‌روزرسانی موفق"
+                      : "خطای به‌روزرسانی"}
+                  </span>
+                ))}
+          </div>
+          <div className="alert-actions">
+            <button type="button" onClick={saveAlert}>
+              ذخیره هشدار جستجو
+            </button>
+            {savedAlertToken && (
+              <button type="button" onClick={checkAlert}>
+                بررسی هشدار
+              </button>
+            )}
+          </div>
+        </div>
+        {alertMessage && (
+          <div className="alert-message" role="status">
+            {alertMessage} {alertCount !== null && number(alertCount)}
           </div>
         )}
         <div className="heading-row">
@@ -343,6 +440,11 @@ export default function App() {
                                     item.last_seen_at,
                                   ).toLocaleDateString("fa-IR")}
                             </small>
+                            {item.potential_duplicate_count > 0 && (
+                              <small className="duplicate-warning">
+                                احتمال ثبت تکراری در منبع دیگر
+                              </small>
+                            )}
                           </div>
                           <div>
                             <small>کارکرد</small>
@@ -383,6 +485,7 @@ export default function App() {
                               </a>
                             )}
                           </div>
+                          <OfferHistory listingID={item.id} />
                         </div>
                       ))}
                     </div>
@@ -469,5 +572,57 @@ export default function App() {
         </div>
       </footer>
     </>
+  );
+}
+
+function OfferHistory({ listingID }: { listingID: number }) {
+  const [open, setOpen] = useState(false);
+  const [points, setPoints] = useState<PriceObservation[] | null>(null);
+  const [error, setError] = useState("");
+
+  const toggle = async () => {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    setOpen(true);
+    if (points !== null) return;
+    try {
+      const response = await fetch(`/api/v1/listings/${listingID}/history`);
+      if (!response.ok) throw new Error("تاریخچه قیمت دریافت نشد.");
+      const data: { items: PriceObservation[] } = await response.json();
+      setPoints(data.items ?? []);
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "خطا در دریافت تاریخچه",
+      );
+    }
+  };
+
+  return (
+    <div className="history-panel">
+      <button type="button" onClick={toggle} aria-expanded={open}>
+        تاریخچه قیمت {open ? "⌃" : "⌄"}
+      </button>
+      {open &&
+        (error ? (
+          <p>{error}</p>
+        ) : points === null ? (
+          <p>در حال دریافت...</p>
+        ) : points.length === 0 ? (
+          <p>هنوز تاریخچه‌ای ثبت نشده است.</p>
+        ) : (
+          <ol>
+            {points.map((point) => (
+              <li key={point.observed_at}>
+                <span>
+                  {new Date(point.observed_at).toLocaleDateString("fa-IR")}
+                </span>
+                <strong>{number(point.price_toman)} تومان</strong>
+              </li>
+            ))}
+          </ol>
+        ))}
+    </div>
   );
 }

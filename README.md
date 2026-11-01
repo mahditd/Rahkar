@@ -4,9 +4,10 @@ Persian car listing comparison for Iran. The first version aggregates **approved
 
 ## Structure
 
-- `backend/`: Go API, clean architecture layers, PostgreSQL adapter, CSV feed importer
+- `backend/`: Go API with domain, application, and adapter layers; PostgreSQL, CSV importer, scheduled feed worker
 - `frontend/`: React + TypeScript web app
 - `sample-data/`: clearly fictional demo feeds
+- `scripts/`: local database backup helper
 
 ## Run locally
 
@@ -19,6 +20,8 @@ docker compose run --rm importer-b
 ```
 
 Open http://localhost:5173. The API health endpoint is http://localhost:8081/api/v1/health.
+
+The web server proxies `/api/` to the Go API, so the browser and API work together at `localhost:5173`. The default search starts in Tehran; clear the city filter to search all imported cities. The page supports search, filters, listing comparison, source status, price history, duplicate hints, and saved search alerts. Alerts are checked in the page and do not send notifications.
 
 The two import commands load **fictional listings** from two sample sources. They are labelled as demo records in the interface. To remove local demo data, run `docker compose down -v` (this deletes the local PostgreSQL volume).
 
@@ -34,7 +37,25 @@ $env:DATABASE_URL='postgres://rahcar:rahcar@localhost:5434/rahcar?sslmode=disabl
 go run ./cmd/importer -file ../sample-data/dealer-a.csv -source dealer-a -permission-ref agreement-123
 ```
 
-`backend/migrations/001_init.sql` creates the schema. Docker applies it when its database volume is first created. For an existing database, apply the SQL migration manually with `psql`.
+`backend/migrations/001_init.sql` and `002_operations.sql` create the schema. Docker applies them when its database volume is first created. If upgrading an existing local database, apply the second migration once:
+
+```powershell
+docker compose exec -T db psql -v ON_ERROR_STOP=1 -U rahcar -d rahcar -f /migrations/002_operations.sql
+```
+
+The migration is safe to rerun. Do not use `docker compose down -v` on a database you want to keep.
+
+## Scheduled feeds and operations
+
+`feed-config.example.json` shows two fictional local feeds. To run one import cycle, use:
+
+```powershell
+docker compose --profile worker run --rm worker -config /config/feeds.json -once
+```
+
+To keep the worker running every 30 minutes, use `docker compose --profile worker up -d worker`. For an approved real source, replace the example config mount in `compose.yaml` with your private config. Each source needs a stable name, a documented permission reference, and an HTTPS CSV URL; `token_env` optionally names an environment variable containing a bearer token. Keep credentials out of Git. The worker records successes and failures at `/api/v1/sources`. Imports retain price changes, and possible cross-source duplicates are marked as candidates for review.
+
+Create a local PostgreSQL dump with `./scripts/backup.ps1`. It writes a timestamped file under ignored `backups/`. A backup should be copied to separate storage for production use.
 
 ## Development
 
@@ -49,7 +70,7 @@ npm install
 npm run build
 ```
 
-The frontend uses `VITE_API_URL` if set; by default it calls `http://localhost:8080`. No paid services or AI APIs are required.
+The frontend calls same-origin `/api/`; the Docker Nginx server proxies those requests to Go. For Vite development outside Docker, its proxy targets `http://localhost:8081`. No paid services or AI APIs are required.
 
 ## Data source status
 
@@ -57,4 +78,4 @@ The frontend uses `VITE_API_URL` if set; by default it calls `http://localhost:8
 - [Bama's terms](https://bama.ir/terms) prohibit automated copying and require permission to republish listings.
 - Sheypoor has public vehicle listings, but we have not found a documented feed with republication permission.
 
-The importer is designed for opt-in sources. A live launch needs at least two approved independent feeds.
+The importer is designed for opt-in sources. A live launch still needs approved independent feeds, a hosting provider and domain, production secrets and HTTPS, and a tested off-host backup. The web proxy limits alert requests by client IP; a public deployment should preserve this control or add authentication. The included feeds and prices are fictional.

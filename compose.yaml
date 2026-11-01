@@ -9,7 +9,9 @@ services:
       - "127.0.0.1:5434:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./backend/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
+      - ./backend/migrations:/docker-entrypoint-initdb.d:ro
+      - ./backend/migrations:/migrations:ro
+      - ./backups:/backups
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U rahcar -d rahcar"]
       interval: 3s
@@ -27,6 +29,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/api/v1/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
   frontend:
     build: ./frontend
@@ -60,6 +67,21 @@ services:
       db:
         condition: service_healthy
     profiles: ["tools"]
+
+  worker:
+    build: ./backend
+    entrypoint: ["/app/worker"]
+    command: ["-config", "/config/feeds.json"]
+    environment:
+      DATABASE_URL: postgres://rahcar:rahcar@db:5432/rahcar?sslmode=disable
+    volumes:
+      - ./sample-data:/data:ro
+      - ./feed-config.example.json:/config/feeds.json:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    profiles: ["worker"]
 
 volumes:
   pgdata:

@@ -1,7 +1,9 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -9,10 +11,80 @@ import (
 	"rahcar/backend/internal/application"
 )
 
-func Handler(service *application.Listings, allowedOrigin string) http.Handler {
+func Handler(service *application.Listings, allowedOrigin string, ready func(context.Context) error) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/health", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	})
+	mux.HandleFunc("GET /api/v1/ready", func(w http.ResponseWriter, r *http.Request) {
+		if err := ready(r.Context()); err != nil {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]string{"status": "unavailable"})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ready"})
+	})
+	mux.HandleFunc("GET /api/v1/listings/{id}/history", func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+		if err != nil || id <= 0 {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid listing ID"})
+			return
+		}
+		points, err := service.History(r.Context(), id)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not load price history"})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"items": points})
+	})
+	mux.HandleFunc("GET /api/v1/sources", func(w http.ResponseWriter, r *http.Request) {
+		statuses, err := service.SourceStatuses(r.Context())
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not load source status"})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"items": statuses})
+	})
+	mux.HandleFunc("POST /api/v1/alerts", func(w http.ResponseWriter, r *http.Request) {
+		var input struct {
+			Query         string `json:"query"`
+			City          string `json:"city"`
+			Make          string `json:"make"`
+			MaxPriceToman int64  `json:"max_price_toman"`
+		}
+		decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096))
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&input); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid alert request"})
+			return
+		}
+		alert, err := service.CreateAlert(r.Context(), application.SearchFilter{
+			Query: input.Query, City: input.City, Make: input.Make, MaxPriceToman: input.MaxPriceToman,
+		})
+		if err != nil {
+			if errors.Is(err, application.ErrInvalidAlertFilters) {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid alert filters"})
+			} else {
+				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not save alert"})
+			}
+			return
+		}
+		writeJSON(w, http.StatusCreated, alert)
+	})
+	mux.HandleFunc("GET /api/v1/alerts", func(w http.ResponseWriter, r *http.Request) {
+		alert, matches, err := service.AlertMatches(r.Context(), r.Header.Get("X-Alert-Token"))
+		if errors.Is(err, application.ErrAlertNotFound) {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "alert not found"})
+			return
+		}
+		if err != nil {
+			if errors.Is(err, application.ErrInvalidAlertToken) {
+				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid alert token"})
+			} else {
+				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "could not load alert"})
+			}
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"alert": alert, "items": matches, "count": len(matches)})
 	})
 	mux.HandleFunc("GET /api/v1/listings", func(w http.ResponseWriter, r *http.Request) {
 		params := r.URL.Query()
@@ -69,8 +141,8 @@ func Handler(service *application.Listings, allowedOrigin string) http.Handler {
 		if origin := r.Header.Get("Origin"); origin != "" && strings.EqualFold(origin, allowedOrigin) {
 			w.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
 			w.Header().Set("Vary", "Origin")
-			w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Alert-Token")
 		}
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)

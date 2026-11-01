@@ -37,7 +37,7 @@ func main() {
 		origin = "http://localhost:5173"
 	}
 	server := &http.Server{
-		Addr: ":" + port, Handler: httpapi.Handler(application.NewListings(postgres.NewListings(pool)), origin),
+		Addr: ":" + port, Handler: httpapi.Handler(application.NewListings(postgres.NewListings(pool)), origin, pool.Ping),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	log.Printf("API listening on :%s", port)

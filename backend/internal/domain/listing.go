@@ -8,25 +8,31 @@ import (
 )
 
 type Listing struct {
-	ID             int64     `json:"id"`
-	SourceName     string    `json:"source_name"`
-	ExternalID     string    `json:"external_id"`
-	PermissionRef  string    `json:"-"`
-	SourceURL      string    `json:"source_url"`
-	Title          string    `json:"title"`
-	Make           string    `json:"make"`
-	Model          string    `json:"model"`
-	Trim           string    `json:"trim"`
-	ProductionYear int       `json:"production_year"`
-	YearCalendar   string    `json:"year_calendar"`
-	MileageKM      int       `json:"mileage_km"`
-	PriceToman     int64     `json:"price_toman"`
-	City           string    `json:"city"`
-	BodyCondition  string    `json:"body_condition"`
-	PublishedAt    time.Time `json:"published_at"`
-	LastSeenAt     time.Time `json:"last_seen_at"`
-	ExpiresAt      time.Time `json:"expires_at"`
-	SearchText     string    `json:"-"`
+	ID                      int64     `json:"id"`
+	SourceName              string    `json:"source_name"`
+	ExternalID              string    `json:"external_id"`
+	PermissionRef           string    `json:"-"`
+	SourceURL               string    `json:"source_url"`
+	Title                   string    `json:"title"`
+	Make                    string    `json:"make"`
+	Model                   string    `json:"model"`
+	Trim                    string    `json:"trim"`
+	ProductionYear          int       `json:"production_year"`
+	YearCalendar            string    `json:"year_calendar"`
+	MileageKM               int       `json:"mileage_km"`
+	PriceToman              int64     `json:"price_toman"`
+	City                    string    `json:"city"`
+	BodyCondition           string    `json:"body_condition"`
+	PublishedAt             time.Time `json:"published_at"`
+	LastSeenAt              time.Time `json:"last_seen_at"`
+	ExpiresAt               time.Time `json:"expires_at"`
+	SearchText              string    `json:"-"`
+	PotentialDuplicateCount int       `json:"potential_duplicate_count"`
+}
+
+type PriceObservation struct {
+	ObservedAt time.Time `json:"observed_at"`
+	PriceToman int64     `json:"price_toman"`
 }
 
 func (l *Listing) Prepare() error {

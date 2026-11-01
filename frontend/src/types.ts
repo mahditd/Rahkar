@@ -16,6 +16,24 @@ export type Listing = {
   published_at: string;
   last_seen_at: string;
   expires_at: string;
+  potential_duplicate_count: number;
 };
 
 export type ListingResponse = { items: Listing[]; count: number };
+
+export type PriceObservation = { observed_at: string; price_toman: number };
+export type SourceStatus = {
+  source_name: string;
+  status: "success" | "failed";
+  last_run_at: string;
+  imported_count: number;
+};
+export type SavedAlert = {
+  token: string;
+  query: string;
+  city: string;
+  make: string;
+  max_price_toman: number;
+  created_at: string;
+  expires_at: string;
+};
