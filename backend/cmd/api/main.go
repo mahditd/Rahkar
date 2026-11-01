@@ -9,6 +9,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"rahcar/backend/internal/adapters/httpapi"
+	"rahcar/backend/internal/adapters/nemuda"
 	"rahcar/backend/internal/adapters/postgres"
 	"rahcar/backend/internal/application"
 )
@@ -37,7 +38,7 @@ func main() {
 		origin = "http://localhost:5173"
 	}
 	server := &http.Server{
-		Addr: ":" + port, Handler: httpapi.Handler(application.NewListings(postgres.NewListings(pool)), origin, pool.Ping),
+		Addr: ":" + port, Handler: httpapi.Handler(application.NewListings(postgres.NewListings(pool)), nemuda.NewClient(), origin, pool.Ping),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	log.Printf("API listening on :%s", port)

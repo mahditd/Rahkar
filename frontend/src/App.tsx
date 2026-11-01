@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type {
   Listing,
   ListingResponse,
+  MarketSnapshot,
   PriceObservation,
   SavedAlert,
   SourceStatus,
@@ -53,6 +54,8 @@ export default function App() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [selected, setSelected] = useState<Listing[]>([]);
   const [sources, setSources] = useState<SourceStatus[]>([]);
+  const [market, setMarket] = useState<MarketSnapshot | null>(null);
+  const [marketError, setMarketError] = useState(false);
   const [savedAlertToken, setSavedAlertToken] = useState(
     () => localStorage.getItem("rahcar-alert-token") || "",
   );
@@ -64,6 +67,16 @@ export default function App() {
       .then((response) => response.json())
       .then((data: { items: SourceStatus[] }) => setSources(data.items ?? []))
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/v1/market")
+      .then((response) => {
+        if (!response.ok) throw new Error("market prices unavailable");
+        return response.json() as Promise<MarketSnapshot>;
+      })
+      .then(setMarket)
+      .catch(() => setMarketError(true));
   }, []);
 
   const saveAlert = async () => {
@@ -257,6 +270,31 @@ export default function App() {
             </p>
           </div>
         )}
+        <section className="market-section" aria-label="قیمت‌های بازار خودرو">
+          <div className="market-heading">
+            <div>
+              <span className="section-label">داده واقعی بازار ایران</span>
+              <h2>برآورد قیمت خودروهای کارکرده</h2>
+              <p>قیمت میانی در سراسر ایران برای خودروی کارکرده با بدنه سالم؛ این عددها آگهی فروش یا قیمت معامله نیستند.</p>
+            </div>
+          </div>
+          {market ? (
+            <div className="market-grid">
+              {market.items.map((item) => (
+                <article className="market-card" key={item.source_url}>
+                  <h3>{item.name} · مدل {number(item.model_year)}</h3>
+                  <strong>{number(item.price_toman)} تومان</strong>
+                  <p>{number(item.data_points)} قیمت اعلام‌شده · کارکرد معمول {number(item.mileage_km)} کیلومتر</p>
+                  <a href={item.source_url} target="_blank" rel="noopener noreferrer">
+                    نمودا · {new Date(market.computed_at).toLocaleDateString("fa-IR")}
+                  </a>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="market-status">{marketError ? "قیمت‌های بازار در دسترس نیستند." : "در حال دریافت قیمت‌های بازار..."}</p>
+          )}
+        </section>
         <div className="operations-row">
           <div className="source-summary">
             {sources.length === 0

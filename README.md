@@ -23,6 +23,8 @@ Open http://localhost:5173. The API health endpoint is http://localhost:8081/api
 
 The web server proxies `/api/` to the Go API, so the browser and API work together at `localhost:5173`. The default search starts in Tehran; clear the city filter to search all imported cities. The page supports search, filters, listing comparison, source status, price history, duplicate hints, and saved search alerts. Alerts are checked in the page and do not send notifications.
 
+The market price panel uses [Nemuda's free car market API](https://nemuda.com/data). These are live national asking-price estimates for used cars, **not individual listings**. Nemuda publishes the figures under CC BY 4.0; each displayed price links to its source page and shows the computation date. The API response is cached for six hours to match its update schedule. If it is unavailable, the panel reports that separately from the listing search.
+
 The two import commands load **fictional listings** from two sample sources. They are labelled as demo records in the interface. To remove local demo data, run `docker compose down -v` (this deletes the local PostgreSQL volume).
 
 ## Import an approved dealer feed
@@ -88,5 +90,6 @@ Only start the `feeds` profile after placing an approved private JSON config at 
 - [Divar Kenar search API](https://divar-ir.github.io/kenar-docs/post/search_post/) has a strict documented 100-call limit and no pagination. [Kenar asks for a support ticket before building on its finder API](https://divar-ir.github.io/kenar-docs/openapi-doc/finder/).
 - [Bama's terms](https://bama.ir/terms) prohibit automated copying and require permission to republish listings.
 - Sheypoor has public vehicle listings, but we have not found a documented feed with republication permission.
+- [Nemuda's car market figures](https://nemuda.com/data) are free to reuse with attribution, but contain aggregate prices rather than sale listings.
 
 The importer is designed for opt-in sources. A live launch still needs approved independent feeds, a hosting provider and domain, production secrets and HTTPS, and a tested off-host backup. The web proxy limits alert requests by client IP; a public deployment should preserve this control or add authentication. The included feeds and prices are fictional.

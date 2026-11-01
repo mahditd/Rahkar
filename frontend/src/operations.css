@@ -7,6 +7,62 @@
   margin-top: 18px;
 }
 
+.market-section {
+  margin-top: 28px;
+  padding: 24px;
+  border: 1px solid #dce9df;
+  border-radius: 18px;
+  background: #f7faf7;
+}
+
+.market-heading h2 {
+  margin: 5px 0 6px;
+}
+
+.market-heading p,
+.market-status {
+  margin: 0;
+  color: #68796f;
+  font-size: 13px;
+}
+
+.market-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.market-card {
+  padding: 16px;
+  border: 1px solid #e1ece4;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.market-card h3 {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+
+.market-card strong {
+  display: block;
+  color: #146b4c;
+  font-size: 17px;
+}
+
+.market-card p {
+  margin: 8px 0;
+  color: #68796f;
+  font-size: 11px;
+}
+
+.market-card a {
+  color: #146b4c;
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .source-summary,
 .alert-actions {
   display: flex;

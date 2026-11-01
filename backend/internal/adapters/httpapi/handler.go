@@ -11,7 +11,7 @@ import (
 	"rahcar/backend/internal/application"
 )
 
-func Handler(service *application.Listings, allowedOrigin string, ready func(context.Context) error) http.Handler {
+func Handler(service *application.Listings, market application.Market, allowedOrigin string, ready func(context.Context) error) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/health", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
@@ -22,6 +22,14 @@ func Handler(service *application.Listings, allowedOrigin string, ready func(con
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ready"})
+	})
+	mux.HandleFunc("GET /api/v1/market", func(w http.ResponseWriter, r *http.Request) {
+		snapshot, err := market.Overview(r.Context())
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "market prices unavailable"})
+			return
+		}
+		writeJSON(w, http.StatusOK, snapshot)
 	})
 	mux.HandleFunc("GET /api/v1/listings/{id}/history", func(w http.ResponseWriter, r *http.Request) {
 		id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)

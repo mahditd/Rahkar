@@ -26,4 +26,5 @@ The import validates the full CSV before saving it. Test an approved source with
 
 - [Divar Kenar search](https://divar-ir.github.io/kenar-docs/post/search_post/) is documented, but its 100-call total limit and lack of pagination make it unsuitable as the main continuous feed.
 - [Bama's terms](https://bama.ir/terms) require permission for automated copying or republication.
+- [Nemuda's car prices](https://nemuda.com/data) are published for free reuse under CC BY 4.0 with source, page link, and computation date. RahCar uses them as separate market estimates because they are not individual sale listings.
 - A dealer-supplied feed with explicit display permission is the practical first live source. The project's fictional CSV files show the required format.

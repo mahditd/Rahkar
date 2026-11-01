@@ -37,3 +37,14 @@ export type SavedAlert = {
   created_at: string;
   expires_at: string;
 };
+
+export type MarketPrice = {
+  name: string;
+  model_year: number;
+  price_toman: number;
+  mileage_km: number;
+  data_points: number;
+  source_url: string;
+};
+
+export type MarketSnapshot = { computed_at: string; items: MarketPrice[] };
