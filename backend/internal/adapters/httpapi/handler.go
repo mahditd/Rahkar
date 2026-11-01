@@ -136,6 +136,7 @@ func Handler(service *application.Listings, market application.Market, allowedOr
 		}
 		result, err := service.Search(r.Context(), application.SearchFilter{
 			Query: params.Get("q"), City: params.Get("city"), Make: params.Get("make"),
+			IncludeDemo:   params.Get("include_demo") == "1",
 			MaxPriceToman: maxPrice, MaxMileageKM: maxMileage, Condition: params.Get("condition"),
 			YearFrom: yearFrom, YearTo: yearTo, Page: page, Limit: limit,
 		})

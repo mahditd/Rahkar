@@ -21,13 +21,6 @@ const sourceLabel = (item: Listing) =>
   isDemo(item)
     ? `فروشنده نمونه ${item.source_name.endsWith("a") ? "الف" : "ب"}`
     : item.source_name;
-const divarSearchURL = (item: Listing) => {
-  const city = item.city === "تهران" ? "tehran" : "iran";
-  const query = [item.make, item.model, item.trim, item.production_year]
-    .filter(Boolean)
-    .join(" ");
-  return `https://divar.ir/s/${city}/car?q=${encodeURIComponent(query)}`;
-};
 const groupKey = (item: Listing) =>
   [
     item.make,
@@ -54,6 +47,7 @@ export default function App() {
   const [yearFrom, setYearFrom] = useState("");
   const [condition, setCondition] = useState("");
   const [page, setPage] = useState(1);
+  const [showDemo, setShowDemo] = useState(false);
   const [items, setItems] = useState<Listing[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -72,7 +66,9 @@ export default function App() {
   useEffect(() => {
     fetch("/api/v1/sources")
       .then((response) => response.json())
-      .then((data: { items: SourceStatus[] }) => setSources(data.items ?? []))
+      .then((data: { items: SourceStatus[] }) =>
+        setSources((data.items ?? []).filter((source) => !source.source_name.startsWith("demo-"))),
+      )
       .catch(() => {});
   }, []);
 
@@ -132,7 +128,7 @@ export default function App() {
 
   useEffect(() => {
     setPage(1);
-  }, [query, city, make, maxPrice, maxMileage, yearFrom, condition]);
+  }, [query, city, make, maxPrice, maxMileage, yearFrom, condition, showDemo]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -143,6 +139,7 @@ export default function App() {
         limit: String(pageSize),
         page: String(page),
       });
+      if (showDemo) params.set("include_demo", "1");
       if (query.trim()) params.set("q", query.trim());
       if (city.trim()) params.set("city", city.trim());
       if (make.trim()) params.set("make", make.trim());
@@ -173,7 +170,7 @@ export default function App() {
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [query, city, make, maxPrice, maxMileage, yearFrom, condition, page]);
+  }, [query, city, make, maxPrice, maxMileage, yearFrom, condition, page, showDemo]);
 
   const groups = useMemo(() => {
     const grouped = new Map<string, Group>();
@@ -275,6 +272,9 @@ export default function App() {
               فیدهای نمونه این پروژه ساختگی هستند. قیمت‌ها و فروشنده‌های نمونه،
               اطلاعات واقعی بازار نیستند.
             </p>
+            <button type="button" className="demo-toggle" onClick={() => setShowDemo(false)}>
+              بازگشت به آگهی‌های واقعی
+            </button>
           </div>
         )}
         <section className="market-section" aria-label="قیمت‌های بازار خودرو">
@@ -305,7 +305,7 @@ export default function App() {
         <div className="operations-row">
           <div className="source-summary">
             {sources.length === 0
-              ? "هنوز وضعیت منبعی ثبت نشده است."
+              ? "هنوز منبع آگهی واقعی متصل نشده است."
               : sources.map((source) => (
                   <span
                     key={source.source_name}
@@ -430,8 +430,13 @@ export default function App() {
               </div>
             ) : groups.length === 0 ? (
               <div className="state-card">
-                <h3>آگهی‌ای پیدا نشد</h3>
-                <p>فیلترها را تغییر بده یا فیدهای نمونه را وارد کن.</p>
+                <h3>آگهی واقعی موجود نیست</h3>
+                <p>هنوز فید فروشنده‌ای با قیمت و لینک آگهی اصلی متصل نشده است.</p>
+                {!showDemo && (
+                  <button type="button" className="demo-toggle" onClick={() => setShowDemo(true)}>
+                    نمایش نمونه‌های طراحی
+                  </button>
+                )}
               </div>
             ) : (
               groups.map((group) => (
@@ -520,15 +525,7 @@ export default function App() {
                                 ? "انتخاب شد"
                                 : "مقایسه"}
                             </button>
-                            {isDemo(item) ? (
-                              <a
-                                href={divarSearchURL(item)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                جستجوی مشابه در دیوار ↗
-                              </a>
-                            ) : (
+                            {!isDemo(item) && (
                               <a
                                 href={item.source_url}
                                 target="_blank"

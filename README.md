@@ -27,7 +27,7 @@ The market price panel uses [Nemuda's free car market API](https://nemuda.com/da
 
 The two import commands load **fictional listings** from two sample sources. They are labelled as demo records in the interface. To remove local demo data, run `docker compose down -v` (this deletes the local PostgreSQL volume).
 
-Each fictional offer links to a live Divar search for similar cars. That link opens search results; it does not identify a real ad corresponding to the sample price. Imported approved listings use their exact `source_url` for the “original listing” link.
+The API and web app hide fictional offers by default. The empty state has an explicit design-demo option, and API callers can use `include_demo=1`. Demo offers have no outbound ad link. Imported approved listings use their exact `source_url` for the “original listing” link.
 
 ## Import an approved dealer feed
 

@@ -13,6 +13,7 @@ import (
 
 type SearchFilter struct {
 	Query         string
+	IncludeDemo   bool
 	City          string
 	Make          string
 	MaxPriceToman int64

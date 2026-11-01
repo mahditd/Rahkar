@@ -17,9 +17,10 @@ type Listings struct{ pool *pgxpool.Pool }
 func NewListings(pool *pgxpool.Pool) *Listings { return &Listings{pool: pool} }
 
 func (r *Listings) Search(ctx context.Context, f application.SearchFilter) (application.SearchResult, error) {
-	args := []any{f.Query, f.City, f.Make, f.MaxPriceToman, f.MaxMileageKM, f.Condition, f.YearFrom, f.YearTo, f.YearCalendar}
+	args := []any{f.Query, f.City, f.Make, f.MaxPriceToman, f.MaxMileageKM, f.Condition, f.YearFrom, f.YearTo, f.YearCalendar, f.IncludeDemo}
 	const where = ` FROM listings
 		WHERE expires_at > now()
+		  AND ($10::bool OR source_name NOT LIKE 'demo-%')
 		  AND ($1 = '' OR search_text ILIKE '%' || $1 || '%')
 		  AND ($2 = '' OR city = $2)
 		  AND ($3 = '' OR make = $3)
@@ -39,7 +40,7 @@ func (r *Listings) Search(ctx context.Context, f application.SearchFilter) (appl
 		       published_at, last_seen_at, expires_at,
 		       (SELECT count(*) FROM duplicate_candidates d WHERE d.first_listing_id = listings.id OR d.second_listing_id = listings.id)`+where+`
 		ORDER BY published_at DESC, id DESC
-		LIMIT $10 OFFSET $11`, append(args, f.Limit, (f.Page-1)*f.Limit)...)
+		LIMIT $11 OFFSET $12`, append(args, f.Limit, (f.Page-1)*f.Limit)...)
 	if err != nil {
 		return application.SearchResult{}, fmt.Errorf("query listings: %w", err)
 	}
@@ -202,7 +203,7 @@ func (r *Listings) AlertMatches(ctx context.Context, token string) (domain.Saved
 	rows, err := r.pool.Query(ctx, `SELECT id, source_name, source_listing_id, source_url, title, make, model, trim,
 		production_year, year_calendar, mileage_km, price_toman, city, body_condition,
 		published_at, last_seen_at, expires_at
-		FROM listings WHERE expires_at>now()
+		FROM listings WHERE expires_at>now() AND source_name NOT LIKE 'demo-%'
 		  AND (first_seen_at >= $1 OR ($5::bigint>0 AND EXISTS (
 		    SELECT 1 FROM price_observations p WHERE p.listing_id=listings.id
 		      AND p.observed_at >= $1 AND p.price_toman <= $5)))

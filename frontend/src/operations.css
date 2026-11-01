@@ -15,6 +15,16 @@
   background: #f7faf7;
 }
 
+.demo-toggle {
+  margin-top: 14px;
+  border: 1px solid #c8dfd0;
+  border-radius: 8px;
+  padding: 9px 14px;
+  background: #fff;
+  color: #176e4f;
+  font-weight: 700;
+}
+
 .market-heading h2 {
   margin: 5px 0 6px;
 }
