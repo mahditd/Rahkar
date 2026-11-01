@@ -1,0 +1,9 @@
+.env
+.env.*
+!.env.example
+node_modules/
+dist/
+*.tsbuildinfo
+backend/rahcar-api
+backend/rahcar-importer
+*.log

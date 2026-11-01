@@ -1,0 +1,5 @@
+external_id,source_url,title,make,model,trim,production_year,year_calendar,mileage_km,price_toman,city,body_condition,published_at
+b-1,https://example.com/b-1,پژو ۲۰۷ پانوراما ۱۴۰۲,پژو,۲۰۷,پانوراما,1402,jalali,46000,785000000,تهران,یک لکه رنگ,2026-10-29T11:00:00Z
+b-2,https://example.com/b-2,تارا اتوماتیک V4 ۱۴۰۳,ایران خودرو,تارا,اتوماتیک V4,1403,jalali,28000,1100000000,تهران,بدون رنگ,2026-10-28T12:00:00Z
+b-3,https://example.com/b-3,شاهین G ۱۴۰۲,سایپا,شاهین,G,1402,jalali,57000,640000000,تهران,رنگ‌شدگی,2026-10-29T08:00:00Z
+b-4,https://example.com/b-4,هیوندای النترا ۲۰۱۷,هیوندای,النترا,GLS,2017,gregorian,119000,1990000000,تهران,یک لکه رنگ,2026-10-28T07:00:00Z

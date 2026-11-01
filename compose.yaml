@@ -1,0 +1,65 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: rahcar
+      POSTGRES_PASSWORD: rahcar
+      POSTGRES_DB: rahcar
+    ports:
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backend/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rahcar -d rahcar"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgres://rahcar:rahcar@db:5432/rahcar?sslmode=disable
+      CORS_ORIGIN: http://localhost:5173
+      PORT: "8080"
+    ports:
+      - "127.0.0.1:8081:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "127.0.0.1:5173:80"
+    depends_on:
+      - api
+
+  importer:
+    build: ./backend
+    entrypoint: ["/app/importer"]
+    command: ["-file", "/data/dealer-a.csv", "-source", "demo-dealer-a", "-permission-ref", "fictional-demo-only"]
+    environment:
+      DATABASE_URL: postgres://rahcar:rahcar@db:5432/rahcar?sslmode=disable
+    volumes:
+      - ./sample-data:/data:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    profiles: ["tools"]
+
+  importer-b:
+    build: ./backend
+    entrypoint: ["/app/importer"]
+    command: ["-file", "/data/dealer-b.csv", "-source", "demo-dealer-b", "-permission-ref", "fictional-demo-only"]
+    environment:
+      DATABASE_URL: postgres://rahcar:rahcar@db:5432/rahcar?sslmode=disable
+    volumes:
+      - ./sample-data:/data:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    profiles: ["tools"]
+
+volumes:
+  pgdata:
