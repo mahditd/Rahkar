@@ -21,6 +21,13 @@ const sourceLabel = (item: Listing) =>
   isDemo(item)
     ? `فروشنده نمونه ${item.source_name.endsWith("a") ? "الف" : "ب"}`
     : item.source_name;
+const divarSearchURL = (item: Listing) => {
+  const city = item.city === "تهران" ? "tehran" : "iran";
+  const query = [item.make, item.model, item.trim, item.production_year]
+    .filter(Boolean)
+    .join(" ");
+  return `https://divar.ir/s/${city}/car?q=${encodeURIComponent(query)}`;
+};
 const groupKey = (item: Listing) =>
   [
     item.make,
@@ -493,7 +500,7 @@ export default function App() {
                             <b>{item.body_condition || "اعلام نشده"}</b>
                           </div>
                           <div className="offer-price">
-                            <small>قیمت درخواستی</small>
+                            <small>{isDemo(item) ? "قیمت نمونه" : "قیمت درخواستی"}</small>
                             <b>{number(item.price_toman)} تومان</b>
                           </div>
                           <div className="offer-actions">
@@ -513,7 +520,15 @@ export default function App() {
                                 ? "انتخاب شد"
                                 : "مقایسه"}
                             </button>
-                            {!isDemo(item) && (
+                            {isDemo(item) ? (
+                              <a
+                                href={divarSearchURL(item)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                جستجوی مشابه در دیوار ↗
+                              </a>
+                            ) : (
                               <a
                                 href={item.source_url}
                                 target="_blank"

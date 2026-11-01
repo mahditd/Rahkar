@@ -27,6 +27,8 @@ The market price panel uses [Nemuda's free car market API](https://nemuda.com/da
 
 The two import commands load **fictional listings** from two sample sources. They are labelled as demo records in the interface. To remove local demo data, run `docker compose down -v` (this deletes the local PostgreSQL volume).
 
+Each fictional offer links to a live Divar search for similar cars. That link opens search results; it does not identify a real ad corresponding to the sample price. Imported approved listings use their exact `source_url` for the “original listing” link.
+
 ## Import an approved dealer feed
 
 CSV fields: `external_id,source_url,title,make,model,trim,production_year,year_calendar,mileage_km,price_toman,city,body_condition,published_at`. `year_calendar` is `jalali` or `gregorian`; `published_at` is RFC 3339. Prices are integer **tomans**. See `sample-data/dealer-a.csv` for an example.
